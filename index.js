@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const app = express();
 app.use(express.json());
@@ -8,6 +9,10 @@ app.use(express.json());
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const MERCADO_PAGO_TOKEN = process.env.MERCADO_PAGO_TOKEN;
 const CANAL_CHAT_ID = process.env.CANAL_CHAT_ID;
+
+// Configuración oficial del SDK de Mercado Pago
+const client = new MercadoPagoConfig({ accessToken: MERCADO_PAGO_TOKEN });
+const preference = new Preference(client);
 
 // Ruta para recibir los mensajes de Telegram (Webhook)
 app.post('/telegram-webhook', async (req, res) => {
@@ -17,42 +22,76 @@ app.post('/telegram-webhook', async (req, res) => {
     if (update.message && update.message.text === '/start') {
         const chatId = update.message.chat.id;
 
-        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Realiza tu pago desde el siguiente enlace para obtener acceso.";
+        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago.";
         
-        // Enviar respuesta a Telegram
-        await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-            chat_id: chatId,
-            text: mensajeBienvenida
-        });
+        try {
+            // 1. Enviamos el mensaje de bienvenida a Telegram
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: mensajeBienvenida
+            });
+
+            // 2. Generamos la liga de pago automáticamente en Mercado Pago
+            const response = await preference.create({
+                body: {
+                    items: [
+                        {
+                            title: 'Acceso a Canal VIP Telegram',
+                            unit_price: 150.00, // Puedes cambiar el precio aquí
+                            quantity: 1,
+                        }
+                    ],
+                    external_reference: chatId.toString(), // Guardamos el ID del usuario
+                    back_urls: {
+                        success: "https://t.me/ChicoprogramadorAccess_bot"
+                    },
+                    auto_return: "approved"
+                }
+            });
+
+            const linkPago = response.init_point;
+
+            // 3. Enviamos el link de pago abajo del mensaje de bienvenida
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: `Haz clic en el siguiente enlace para realizar tu pago:\n${linkPago}`
+            });
+
+        } catch (error) {
+            console.error('Error al generar la preferencia de pago:', error);
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: 'Hubo un error al generar el enlace de pago automático. Intenta más tarde.'
+            });
+        }
     }
 
     return res.sendStatus(200);
 });
 
-// Ruta para recibir las notificaciones de Mercado Pago
+// Ruta para recibir las notificaciones o webhooks de Mercado Pago
 app.post('/mp-webhook', async (req, res) => {
     const data = req.body;
 
-    // Tu servidor escuchará cuando el pago sea exitoso o aprobado
-    // Nota: Asegúrate de que la preferencia de pago incluya el chat.id en el campo external_reference
+    // Tu servidor escucha cuando el pago es exitoso o aprobado
     if (data.action === 'payment.created' || data.type === 'payment') {
         try {
-            // Genera el enlace de invitación para el canal de Telegram
+            // Genera el enlace de invitación de un solo uso para el canal de Telegram
             const inviteResponse = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`, {
-                chat_id: CANAL_CHAT_ID,
+                chat_id: CANALCHAT_ID,
                 member_limit: 1 // Límite de un solo uso
             });
 
             const inviteLink = inviteResponse.data.result.invite_link;
 
-            // Extraemos el chat_id del usuario que guardamos en 'external_reference' al crear el pago
+            // Extraemos el chat_id del usuario guardado en 'external_reference'
             const userId = data.external_reference; 
 
             if (userId) {
                 // Envía el link de acceso por Telegram al usuario que pagó
                 await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                     chat_id: userId,
-                    text: `¡Pago exitoso! Aquí tienes tu enlace de acceso al canal: ${inviteLink}`
+                    text: `¡Pago exitoso! Aquí tienes tu enlace de acceso al canal:\n${inviteLink}`
                 });
             }
 
