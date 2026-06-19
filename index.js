@@ -78,7 +78,7 @@ app.post('/mp-webhook', async (req, res) => {
         try {
             // Genera el enlace de invitación de un solo uso para el canal de Telegram
             const inviteResponse = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`, {
-                chat_id: CANALCHAT_ID,
+                chat_id: CANAL_CHAT_ID,
                 member_limit: 1 // Límite de un solo uso
             });
 
