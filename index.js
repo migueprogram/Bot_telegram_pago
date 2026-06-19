@@ -34,6 +34,7 @@ app.post('/mp-webhook', async (req, res) => {
     const data = req.body;
 
     // Tu servidor escuchará cuando el pago sea exitoso o aprobado
+    // Nota: Asegúrate de que la preferencia de pago incluya el chat.id en el campo external_reference
     if (data.action === 'payment.created' || data.type === 'payment') {
         try {
             // Genera el enlace de invitación para el canal de Telegram
@@ -44,8 +45,16 @@ app.post('/mp-webhook', async (req, res) => {
 
             const inviteLink = inviteResponse.data.result.invite_link;
 
-            // Aquí deberías enviar el `inviteLink` al usuario que realizó el pago.
-            console.log("Enlace de acceso generado:", inviteLink);
+            // Extraemos el chat_id del usuario que guardamos en 'external_reference' al crear el pago
+            const userId = data.external_reference; 
+
+            if (userId) {
+                // Envía el link de acceso por Telegram al usuario que pagó
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                    chat_id: userId,
+                    text: `¡Pago exitoso! Aquí tienes tu enlace de acceso al canal: ${inviteLink}`
+                });
+            }
 
         } catch (error) {
             console.error('Error al generar enlace de Telegram:', error.response?.data || error.message);
