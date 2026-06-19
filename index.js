@@ -43,7 +43,7 @@ app.post('/telegram-webhook', async (req, res) => {
                     ],
                     external_reference: chatId.toString(), // Guardamos el ID del usuario
                     back_urls: {
-                        success: "https://t.me/ChicoprogramadorAccess_bot"
+                        success: "https://t.me/chico_programador_vip_bot"
                     },
                     auto_return: "approved"
                 }
