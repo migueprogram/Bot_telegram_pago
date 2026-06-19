@@ -72,22 +72,35 @@ app.post('/telegram-webhook', async (req, res) => {
 // Ruta para recibir las notificaciones o webhooks de Mercado Pago
 app.post('/mp-webhook', async (req, res) => {
     const data = req.body;
+    console.log("Notificación MP recibida:", JSON.stringify(data));
 
-    // Tu servidor escucha cuando el pago es exitoso o aprobado
-    if (data.action === 'payment.created' || data.type === 'payment') {
+    // Extraemos el ID del recurso o del pago de la notificación
+    const paymentId = data.data ? data.data.id : (data.id || data.resource?.id);
+
+    if (paymentId) {
         try {
-            // Genera el enlace de invitación de un solo uso para el canal de Telegram
-            const inviteResponse = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`, {
-                chat_id: CANAL_CHAT_ID,
-                member_limit: 1 // Límite de un solo uso
+            // Consultamos el estado real del pago mediante la API de Mercado Pago
+            const paymentResponse = await axios.get(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+                headers: {
+                    'Authorization': `Bearer ${MERCADO_PAGO_TOKEN}`
+                }
             });
 
-            const inviteLink = inviteResponse.data.result.invite_link;
+            const paymentStatus = paymentResponse.data.status;
+            const userId = paymentResponse.data.external_reference;
 
-            // Extraemos el chat_id del usuario guardado en 'external_reference'
-            const userId = data.external_reference; 
+            console.log(`Estatus del pago ${paymentId}: ${paymentStatus} - Usuario: ${userId}`);
 
-            if (userId) {
+            // Verificamos que el pago esté aprobado y exista la referencia del usuario
+            if (paymentStatus === 'approved' && userId) {
+                // Genera el enlace de invitación de un solo uso para el canal de Telegram
+                const inviteResponse = await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/createChatInviteLink`, {
+                    chat_id: CANAL_CHAT_ID,
+                    member_limit: 1 // Límite de un solo uso
+                });
+
+                const inviteLink = inviteResponse.data.result.invite_link;
+
                 // Envía el link de acceso por Telegram al usuario que pagó
                 await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                     chat_id: userId,
