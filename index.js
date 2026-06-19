@@ -1,61 +1,39 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const app = express();
 
+const app = express();
 app.use(express.json());
 
-// Variables que configuraremos de forma segura en Render
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const MERCADO_PAGO_TOKEN = process.env.MERCADO_PAGO_TOKEN;
 const CANAL_CHAT_ID = process.env.CANAL_CHAT_ID;
 
-// Endpoint para recibir mensajes de Telegram
+// Ruta para recibir los mensajes de Telegram (Webhook)
 app.post('/telegram-webhook', async (req, res) => {
-    const message = req.body.message;
-    if (!message || !message.text) return res.sendStatus(200);
+    const update = req.body;
 
-    const chatId = message.chat.id;
-    const text = message.text;
+    // Verificamos si hay un mensaje y si es el comando /start
+    if (update.message && update.message.text === '/start') {
+        const chatId = update.message.chat.id;
 
-    // Comando para solicitar pago
-    if (text.startsWith('/pagar')) {
-        try {
-            // Llama a la API de Mercado Pago para crear la preferencia de cobro
-            const mpResponse = await axios.post('https://api.mercadopago.com/v1/preferences', {
-                items: [{
-                    title: "Acceso a canal exclusivo",
-                    quantity: 1,
-                    unit_price: 150
-                }],
-                external_reference: chatId.toString()
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${MERCADO_PAGO_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const paymentLink = mpResponse.data.init_point;
-
-            // Envía el link de pago al usuario por Telegram
-            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-                chat_id: chatId,
-                text: `¡Hola! Haz clic en el siguiente enlace para realizar tu pago de $150 y acceder al canal:\n\n${paymentLink}`
-            });
-
-        } catch (error) {
-            console.error('Error al generar pago:', error.response?.data || error.message);
-        }
+        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Realiza tu pago desde el siguiente enlace para obtener acceso.";
+        
+        // Enviar respuesta a Telegram
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: mensajeBienvenida
+        });
     }
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
 });
 
-// Endpoint para recibir la notificación de pago de Mercado Pago
+// Ruta para recibir las notificaciones de Mercado Pago
 app.post('/mp-webhook', async (req, res) => {
     const data = req.body;
-    
-    // Aquí tu servidor escuchará cuando el pago sea exitoso o aprobado
+
+    // Tu servidor escuchará cuando el pago sea exitoso o aprobado
     if (data.action === 'payment.created' || data.type === 'payment') {
         try {
             // Genera el enlace de invitación para el canal de Telegram
@@ -66,15 +44,15 @@ app.post('/mp-webhook', async (req, res) => {
 
             const inviteLink = inviteResponse.data.result.invite_link;
 
-            // NOTA: Para enviar el link al usuario correcto, se extrae el ID guardado en external_reference.
-            // Este es el bloque base para enviar el acceso al usuario que pagó.
+            // Aquí deberías enviar el `inviteLink` al usuario que realizó el pago.
+            console.log("Enlace de acceso generado:", inviteLink);
 
         } catch (error) {
             console.error('Error al generar enlace de Telegram:', error.response?.data || error.message);
         }
     }
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 10000;
