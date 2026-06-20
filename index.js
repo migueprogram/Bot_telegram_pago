@@ -22,7 +22,7 @@ app.post('/telegram-webhook', async (req, res) => {
     if (update.message && update.message.text === '/start') {
         const chatId = update.message.chat.id;
 
-        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago.";
+        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago. En caso de que no se te entregue tu link de acceso después de 5 minutos, manda tu comprobante de pago a soporte @Chico_programador_x. En cuanto esté disponible, se revisará y se comparará con el historial de pagos para poder validar y entregarte tu link de acceso al canal.Si vienes a renovar solo usa el comando /start para generar una nueva linea de captura y se te pueda validar otra vez el pago";
         
         try {
             // 1. Enviamos el mensaje de bienvenida a Telegram
