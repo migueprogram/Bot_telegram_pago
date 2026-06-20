@@ -37,7 +37,7 @@ app.post('/telegram-webhook', async (req, res) => {
                     items: [
                         {
                             title: 'Acceso a Canal VIP Telegram',
-                            unit_price: 5.00, // Puedes cambiar el precio aquí
+                            unit_price: 159.14, // Puedes cambiar el precio aquí
                             quantity: 1,
                         }
                     ],
