@@ -24,7 +24,7 @@ app.post('/telegram-webhook', async (req, res) => {
 
         // Mensajes separados para mejor lectura
         const msg1 = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago.";
-        const msg2 = "Ten en cuenta que se te cobrará 9.14 de comisión. **Importante:** El enlace de pago solo funciona por 10 minutos desde que fue generado; si vas a pagar en tiendas físicas o no lo harás ahorita, genera uno nuevo cuando estés listo.";
+        const msg2 = "Ten en cuenta que se te cobrará 9.14 de comisión. *Importante:* El enlace de pago solo funciona por 10 minutos desde que fue generado; si vas a pagar en tiendas físicas o no lo harás ahorita, genera uno nuevo cuando estés listo usando /start.";
         const msg3 = "En caso de que no se te entregue tu link de acceso después de 5 minutos, manda tu comprobante de pago a soporte @Chico_programador_x para revisarlo con el historial de pagos.\n\nSi vienes a renovar, solo usa el comando /start para generar una nueva línea de captura y se te pueda validar otra vez el pago.";
         
         try {
@@ -52,7 +52,7 @@ app.post('/telegram-webhook', async (req, res) => {
                     items: [
                         {
                             title: 'Acceso a Canal VIP Telegram',
-                            unit_price: 159.14, // Puedes cambiar el precio aquí
+                            unit_price: 109.14, // Puedes cambiar el precio aquí
                             quantity: 1,
                         }
                     ],
