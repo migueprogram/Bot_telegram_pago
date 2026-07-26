@@ -22,13 +22,28 @@ app.post('/telegram-webhook', async (req, res) => {
     if (update.message && update.message.text === '/start') {
         const chatId = update.message.chat.id;
 
-        const mensajeBienvenida = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago ten en cuenta que se te cobrara 9.14 de comision. En caso de que no se te entregue tu link de acceso después de 5 minutos, manda tu comprobante de pago a soporte @Chico_programador_x. En cuanto esté disponible, se revisará y se comparará con el historial de pagos para poder validar y entregarte tu link de acceso al canal.Si vienes a renovar solo usa el comando /start para generar una nueva linea de captura y se te pueda validar otra vez el pago";
+        // Mensajes separados para mejor lectura
+        const msg1 = "¡Hola! Bienvenido al bot. Para obtener acceso al canal VIP, por favor realiza tu pago.";
+        const msg2 = "Ten en cuenta que se te cobrará 9.14 de comisión. **Importante:** El enlace de pago solo funciona por 10 minutos desde que fue generado; si vas a pagar en tiendas físicas o no lo harás ahorita, genera uno nuevo cuando estés listo.";
+        const msg3 = "En caso de que no se te entregue tu link de acceso después de 5 minutos, manda tu comprobante de pago a soporte @Chico_programador_x para revisarlo con el historial de pagos.\n\nSi vienes a renovar, solo usa el comando /start para generar una nueva línea de captura y se te pueda validar otra vez el pago.";
         
         try {
-            // 1. Enviamos el mensaje de bienvenida a Telegram
+            // 1. Enviamos el primer mensaje
             await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                 chat_id: chatId,
-                text: mensajeBienvenida
+                text: msg1
+            });
+
+            // Enviamos el segundo mensaje con la advertencia del tiempo y comisión
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: msg2
+            });
+
+            // Enviamos el tercer mensaje con soporte y renovaciones
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: msg3
             });
 
             // 2. Generamos la liga de pago automáticamente en Mercado Pago
@@ -51,7 +66,7 @@ app.post('/telegram-webhook', async (req, res) => {
 
             const linkPago = response.init_point;
 
-            // 3. Enviamos el link de pago abajo del mensaje de bienvenida
+            // 3. Enviamos el link de pago abajo de los mensajes de bienvenida
             await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
                 chat_id: chatId,
                 text: `Haz clic en el siguiente enlace para realizar tu pago:\n${linkPago}`
